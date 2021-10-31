@@ -1,8 +1,9 @@
 (module test-example
-    (printf (sprintf "Hello there, %s" "General Kenobi"))
+    (printf (sprintf "Hello there, %s" "General Kenobi")) ; Comment
     (printf "That's it, from our example")
     (error 123.45 "1a1")
     [list 1 2 3 4 "foo bar" (to-number "123.456") ]
+    [map (pair foo "foo") (pair bar "bar") (pair baz "baz")]
     [foo]
     (define my-variable "asdf 42")
     (define my-list [list 1337 1338 1339])

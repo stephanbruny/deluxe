@@ -105,6 +105,13 @@ namespace Deluxe {
                         col = 0;
                         line++;
                     }
+                    if (ch == ';') {
+                        while (ch != '\n') {
+                            i++;
+                            ch = content[i];
+                        }
+                        line++;
+                    }
                     if (ch == '"') {
                         if (currentToken == String) {
                             tokens.push_back({ currentToken, string(current), line });
