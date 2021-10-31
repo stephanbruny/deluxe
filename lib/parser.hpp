@@ -159,18 +159,19 @@ namespace Deluxe {
                 return token;
             }
 
-            static ParseResult parse(vector<SToken> tokens) {
+            static ParseResult parse(vector<SToken> tokens, string currentBracket = "") {
                 SToken current;
                 ParseResult result;
                 for(std::vector<SToken>::iterator it = std::begin(tokens); it != std::end(tokens); ++it) {
                     current = *it;
                     result.index = (int)std::distance(tokens.begin(), it);
                     if (current.tokenType == OpenBracket) {
+                        string openingBracket = string(current.content);
                         it++;
                         auto dist = std::distance(tokens.begin(), it);
                         current = Parser::expectSymbol(*it);
                         auto tail = vector<SToken>(tokens.begin() + dist, tokens.end());
-                        ParseResult body = Parser::parse( tail );
+                        ParseResult body = Parser::parse( tail, openingBracket );
                         result.expressions.push_back(Expression {
                             ExpressionTag::CALL,
                             .callValue = vector<Expression>(body.expressions.begin() + 1, body.expressions.end()),
@@ -197,7 +198,14 @@ namespace Deluxe {
                             .numberValue = std::stod(current.content)
                         });
                     }
-                    if (current.tokenType == CloseBracket) break;
+                    if (current.tokenType == CloseBracket) {
+                        if (!currentBracket.empty()) {
+                            if (currentBracket == "(" && current.content != ")") throw ParserException("Expected closing bracket ')'", current.line);
+                            if (currentBracket == "[" && current.content != "]") throw ParserException("Expected closing bracket ']'", current.line);
+                            if (currentBracket == "{" && current.content != "}") throw ParserException("Expected closing bracket '}'", current.line);
+                        }
+                        break;
+                    }
                     
                 }
                 return result;

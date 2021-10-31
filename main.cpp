@@ -13,8 +13,9 @@ using namespace std;
 void show (vector<Deluxe::Expression> ast, string prefix) {
     for(std::vector<Deluxe::Expression>::iterator it = std::begin(ast); it != std::end(ast); ++it) {
         if (it->tag == Deluxe::ExpressionTag::CALL) {
-            cout << prefix << "CALL " << it->callName << endl;
+            cout << prefix << "CALL " << it->callName << " {" << endl;
             show(it->callValue, prefix + "  ");
+            cout << prefix << "}" << endl;
             continue;
         }
         if (it->tag == Deluxe::ExpressionTag::SYMBOL) {
