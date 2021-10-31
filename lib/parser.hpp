@@ -158,18 +158,18 @@ namespace Deluxe {
                 vector<Expression> result;
                 int i = 0;
                 for(std::vector<SToken>::iterator it = std::begin(tokens); it != std::end(tokens); ++it) {
-                    auto dist = std::distance(tokens.begin(), it);
                     current = *it;
                     if (current.tokenType == OpenBracket) {
                         it++;
+                        auto dist = std::distance(tokens.begin(), it);
                         current = Parser::expectSymbol(*it);
-                        auto tail = vector<SToken>(tokens.begin() + 1, tokens.end());
+                        auto tail = vector<SToken>(tokens.begin() + dist, tokens.end());
                         vector<Expression> body = Parser::parse( tail );
                         result.push_back(Expression {
                             ExpressionTag::CALL,
                             .callValue = body
                         });
-                        return result;
+                        break; // TODO: Skip tail
                     }
                     if (current.tokenType == Symbol) {
                         result.push_back(Expression {
@@ -189,7 +189,7 @@ namespace Deluxe {
                             .numberValue = std::stod(current.content)
                         });
                     }
-                    if (current.tokenType == CloseBracket) return result;
+                    if (current.tokenType == CloseBracket) break;
                     
                 }
                 return result;
