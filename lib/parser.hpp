@@ -53,6 +53,12 @@ namespace Deluxe {
         string symbolValue;
         double numberValue;
         vector<Expression> callValue;
+        string callName;
+    };
+
+    struct ParseResult {
+        vector<Expression> expressions;
+        int index;
     };
 
     class Parser {
@@ -153,38 +159,40 @@ namespace Deluxe {
                 return token;
             }
 
-            static vector<Expression> parse(vector<SToken> tokens) {
+            static ParseResult parse(vector<SToken> tokens) {
                 SToken current;
-                vector<Expression> result;
-                int i = 0;
+                ParseResult result;
                 for(std::vector<SToken>::iterator it = std::begin(tokens); it != std::end(tokens); ++it) {
                     current = *it;
+                    result.index = (int)std::distance(tokens.begin(), it);
                     if (current.tokenType == OpenBracket) {
                         it++;
                         auto dist = std::distance(tokens.begin(), it);
                         current = Parser::expectSymbol(*it);
                         auto tail = vector<SToken>(tokens.begin() + dist, tokens.end());
-                        vector<Expression> body = Parser::parse( tail );
-                        result.push_back(Expression {
+                        ParseResult body = Parser::parse( tail );
+                        result.expressions.push_back(Expression {
                             ExpressionTag::CALL,
-                            .callValue = body
+                            .callValue = vector<Expression>(body.expressions.begin() + 1, body.expressions.end()),
+                            .callName = body.expressions.front().symbolValue
                         });
-                        break; // TODO: Skip tail
+                        it += body.index;
+                        continue; // TODO: Skip tail
                     }
                     if (current.tokenType == Symbol) {
-                        result.push_back(Expression {
+                        result.expressions.push_back(Expression {
                             ExpressionTag::SYMBOL,
                             .symbolValue = current.content
                         });
                     }
                     if (current.tokenType == String) {
-                        result.push_back(Expression {
+                        result.expressions.push_back(Expression {
                             ExpressionTag::STRING,
                             .stringValue = current.content
                         });
                     }
                     if (current.tokenType == Number) {
-                        result.push_back(Expression {
+                        result.expressions.push_back(Expression {
                             ExpressionTag::NUMBER,
                             .numberValue = std::stod(current.content)
                         });

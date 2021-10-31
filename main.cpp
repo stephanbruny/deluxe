@@ -13,7 +13,7 @@ using namespace std;
 void show (vector<Deluxe::Expression> ast, string prefix) {
     for(std::vector<Deluxe::Expression>::iterator it = std::begin(ast); it != std::end(ast); ++it) {
         if (it->tag == Deluxe::ExpressionTag::CALL) {
-            cout << prefix << "CALL" << endl;
+            cout << prefix << "CALL " << it->callName << endl;
             show(it->callValue, prefix + "  ");
             continue;
         }
@@ -47,7 +47,7 @@ int main() {
         uint len = 0;
         auto ast = Deluxe::Parser::parse(tokens);
 
-        show(ast, "");
+        show(ast.expressions, "");
 
     } catch (exception& e) {
         cout << "Error: " << e.what() << endl;
