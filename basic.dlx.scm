@@ -2,7 +2,8 @@
 ; DELUXE example
 ; 
 ; Some thoughts about DELUXE:
-; this language is neither a LISP or a Scheme.
+; DELUXE is a functional, procedural and object oriented programming language.
+; It is neither a LISP nor a Scheme.
 ; It is based on S-Expressions, favors functional style, simplicity and written-out words instead of abbrevations.
 ; Every expression is a function call.
 ; You can use Bracket pairs of (), [] or {}
@@ -31,11 +32,20 @@
 
     { class my-class object-name
         (member name (sprintf "my-class:%s" object-name))
-        (member my-method (none) 
+        (member my-method this ; the first argument is always the instance reference. You may call it this or anything else
             (printf "My name is: %s" this.name)
+        )
+        (on my-message message-data ; define a message handler
+            (match (typeof message-data)
+                (case "string" (printf "Got message: %s" message-data))
+                (case "number" (printf "Got message: %d" message-data))
+                (case-default (printf "Got message, but I don't understand it"))
+            )
         )
     }
 
     (let my-object (my-class "instance"))
     (my-object.my-method) ; prints "My name is: my-class:instance"
+    (send my-message my-object "hello there") ; send a message to my object (prints: "Got message: hello there")
+    (send unknown-message my-object 1234) ; sends a message, but won't do anything as the objects doesn't handle it
 )

@@ -9,7 +9,6 @@
 using namespace std;
 using namespace Deluxe;
 
-
 namespace Deluxe {
     
     typedef std::function<void(vector<Expression>)> RuntimeFunction;
@@ -120,8 +119,13 @@ namespace Deluxe {
                         paramCount++;
                         argumentNames.push_back(param->symbolValue);
                     }
-                    auto body = this->getCallableBody(argumentNames, this->environment, ExpressionList(params.begin() + paramCount, params.end()));
+                    auto callBody = ExpressionList(params.begin() + paramCount, params.end());
+                    auto body = this->getCallableBody(argumentNames, this->environment, callBody);
                     FunctionObject fun(argumentNames, this->environment, body);
+                    this->stack.push(Expression {
+                        .tag = ExpressionTag::CALL,
+                        .callValue = callBody
+                    });
                     // TODO: CALL cannFn with FunctionObject
                 };
 
@@ -138,6 +142,7 @@ namespace Deluxe {
             RuntimeFunction getCallableBody (vector<string> arguments, EnvironmentScope scope, ExpressionList body) {
                 return [&](vector<Expression> params) {
                     uint i = 0;
+                    cout << "CALL BODY CALL" << endl;
                     for (auto arg = arguments.begin(); arg != arguments.end(); ++arg) {
                         auto param = params[i++];
                         this->letBinding(*arg, param);
@@ -185,6 +190,8 @@ namespace Deluxe {
                                 if (scopeFn != this->environment.end()) {
                                     cout << "FN " << functionName << endl;
                                     executeExpression(scopeFn->second, env);
+                                    cout << this->stack.size() << endl;
+                                    // executeExpression(this->stack.top(), env);
                                     break;
                                 } else {
                                     throw RuntimeException("Undefined function " + functionName);
