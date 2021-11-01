@@ -7,6 +7,7 @@
 
 #include "lib/textfile.hpp"
 #include "lib/parser.hpp"
+#include "lib/interpreter.hpp"
 
 using namespace std;
 
@@ -22,7 +23,7 @@ void show (vector<Deluxe::Expression> ast, string prefix) {
             cout << prefix << "SYM " << it->symbolValue << endl;
         }
         if (it->tag == Deluxe::ExpressionTag::STRING) {
-            cout << prefix << "STR " << it->stringValue << endl;
+            cout << prefix << "STR \"" << it->stringValue << "\"" << endl;
         }
         if (it->tag == Deluxe::ExpressionTag::NUMBER) {
             cout << prefix << "NUM " << it->numberValue << endl;
@@ -33,22 +34,27 @@ void show (vector<Deluxe::Expression> ast, string prefix) {
 
 int main() {
     unique_ptr<Deluxe::Textfile> file = std::make_unique<Deluxe::Textfile>(std::cin >> std::noskipws);
-    cout << "What: " << file->getContents() << endl;
+    // cout << "What: " << file->getContents() << endl;
     string content(file->getContents());
 
     try {
         auto tokens = Deluxe::Parser::getTokens(content);
 
-        cout << "Tokens: " << tokens.size() << endl;
+        // cout << "Tokens: " << tokens.size() << endl;
 
-        for (int i = 0; i < tokens.size(); i++) {
-            cout << "Token: " << Deluxe::Parser::getTokenName(tokens[i].tokenType) << " -> " << tokens[i].content << endl;
-        }
+        // for (int i = 0; i < tokens.size(); i++) {
+        //     cout << "Token: " << Deluxe::Parser::getTokenName(tokens[i].tokenType) << " -> " << tokens[i].content << endl;
+        // }
 
         uint len = 0;
         auto ast = Deluxe::Parser::parse(tokens);
 
-        show(ast.expressions, "");
+        // show(ast.expressions, "");
+        auto interpreter = Deluxe::Interpreter(ast);
+
+        for(std::vector<Deluxe::Expression>::iterator it = std::begin(ast.expressions); it != std::end(ast.expressions); ++it) {
+            interpreter.executeExpression(*it);
+        }
 
     } catch (exception& e) {
         cout << "Error: " << e.what() << endl;
