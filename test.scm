@@ -1,3 +1,5 @@
 (let foo "FOO BAR YO")
-(let sym symbol)
-(printf "Hello World! " (return "Foo Bar") " " (return 42) foo sym)
+(let sym none)
+(printf "Hello World! " (return "Foo Bar") " " (return 42) foo " " sym " " (return))
+(let my-function {fn a b (printf a " & " b)})
+(my-function "foo" "bar")

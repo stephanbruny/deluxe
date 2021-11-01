@@ -13,6 +13,27 @@ using namespace Deluxe;
 namespace Deluxe {
     
     typedef std::function<void(vector<Expression>)> RuntimeFunction;
+    typedef map<string, Expression> EnvironmentScope;
+    typedef vector<Expression> ExpressionList;
+
+
+    class FunctionObject {
+        public:
+            vector<string> arguments;
+            EnvironmentScope scope;
+            RuntimeFunction body;
+
+            FunctionObject (vector<string> args, EnvironmentScope scope, RuntimeFunction body) {
+                this->arguments = vector<string>(args);
+                this->scope = EnvironmentScope(scope);
+                this->body = RuntimeFunction(body);
+            }
+    };
+    
+    union InterpreterExpression {
+        Expression expression;
+        FunctionObject function;
+    };
 
     class RuntimeException : public exception {
         public:
@@ -57,8 +78,9 @@ namespace Deluxe {
             }
 
             void initialize () {
-                RuntimeFunction printf = [](vector<Expression> params){
-                    for (auto it = params.begin(); it != params.end(); ++it) {
+                RuntimeFunction printf = [&](vector<Expression> params) {
+                    auto args = this->executeAll(params);
+                    for (auto it = args.begin(); it != args.end(); ++it) {
                         switch (it->tag) {
                             case ExpressionTag::NUMBER: { cout << to_string(it->numberValue); break; }
                             case ExpressionTag::STRING: { cout << it->stringValue; break; }
@@ -70,7 +92,8 @@ namespace Deluxe {
                 };
 
                 RuntimeFunction fnReturn = [&](vector<Expression> params){
-                    for (auto it = params.begin(); it != params.end(); ++it) {
+                    auto args = this->executeAll(params);
+                    for (auto it = args.begin(); it != args.end(); ++it) {
                         this->stack.push(*it);
                     }
                 };
@@ -79,29 +102,100 @@ namespace Deluxe {
                     if (params.size() == 0) return;
                     Expression val = this->getNone();
                     auto sym = params[0];
-                    if (params.size() >= 1) val = params[1];
+                    if (params.size() >= 1) val = this->executeExpression(params[1]);
                     if (sym.tag != ExpressionTag::SYMBOL) throw RuntimeException("Symbol expected");
                     this->environment.insert(pair<string, Expression>(sym.symbolValue, val));
+                };
+
+                RuntimeFunction callFn =[&](vector<Expression> params) {
+                    Expression fnName = params[0];
+                    // auto arguments = 
+                };
+
+                RuntimeFunction defineFunction = [&](vector<Expression> params) {
+                    vector<string> argumentNames;
+                    uint paramCount = 0;
+                    for (auto param = params.begin(); param != params.end(); ++param) {
+                        if (param->tag != ExpressionTag::SYMBOL) break;
+                        paramCount++;
+                        argumentNames.push_back(param->symbolValue);
+                    }
+                    auto body = this->getCallableBody(argumentNames, this->environment, ExpressionList(params.begin() + paramCount, params.end()));
+                    FunctionObject fun(argumentNames, this->environment, body);
+                    // TODO: CALL cannFn with FunctionObject
                 };
 
                 this->runtime.insert(pair<string, RuntimeFunction>("printf", printf));
                 this->runtime.insert(pair<string, RuntimeFunction>("return", fnReturn));
                 this->runtime.insert(pair<string, RuntimeFunction>("let", fnLet));
+                this->runtime.insert(pair<string, RuntimeFunction>("fn", defineFunction));
             }
 
-            Expression executeExpression(Expression exp) {
+            void letBinding(string symbolName, Expression value) {
+                this->environment.insert(pair<string, Expression>(symbolName, value));
+            }
+
+            RuntimeFunction getCallableBody (vector<string> arguments, EnvironmentScope scope, ExpressionList body) {
+                return [&](vector<Expression> params) {
+                    uint i = 0;
+                    for (auto arg = arguments.begin(); arg != arguments.end(); ++arg) {
+                        auto param = params[i++];
+                        this->letBinding(*arg, param);
+                    }
+                    auto results = this->executeAll(body, scope);
+                    for (auto it = results.begin(); it != results.end(); ++it) {
+                        this->stack.push(*it);
+                    }
+                };
+            }
+
+            vector<Expression> executeAll(vector<Expression> expressions) {
+                vector<Expression> results;
+                for (auto exp = expressions.begin(); exp != expressions.end(); ++exp) {
+                    results.push_back(this->executeExpression(*exp));
+                }
+                return results;
+            }
+
+            vector<Expression> executeAll(vector<Expression> expressions, EnvironmentScope scope) {
+                vector<Expression> results;
+                for (auto exp = expressions.begin(); exp != expressions.end(); ++exp) {
+                    results.push_back(this->executeExpression(*exp, scope));
+                }
+                return results;
+            }
+
+            Expression getSymbolValue(string symbol, std::map<string, Expression> env) {
+                auto val = env.find(symbol);
+                if (val == env.end()) {
+                    return this->getNone();
+                }
+                return val->second;
+            }
+
+            Expression executeExpression(Expression exp, std::map<string, Expression> env) {
                 switch (exp.tag) {
                     case ExpressionTag::CALL: {
                         string functionName(exp.callName);
-                        auto function = this->runtime.find(functionName);
-                        if (function == this->runtime.end()) {
-                            throw RuntimeException("Undefined function " + functionName);
+                        if (!functionName.empty()) {
+                            auto function = this->runtime.find(functionName);
+                            if (function == this->runtime.end()) {
+                                // Execute scope function
+                                auto scopeFn = this->environment.find(functionName);
+                                if (scopeFn != this->environment.end()) {
+                                    cout << "FN " << functionName << endl;
+                                    executeExpression(scopeFn->second, env);
+                                    break;
+                                } else {
+                                    throw RuntimeException("Undefined function " + functionName);
+                                }
+                            }
+                            // vector<Expression> parameters;
+                            // for (auto param = exp.callValue.begin(); param != exp.callValue.end(); ++param) {
+                            //     parameters.push_back(this->executeExpression(*param));
+                            // }
+                            function->second(exp.callValue);
                         }
-                        vector<Expression> parameters;
-                        for (auto param = exp.callValue.begin(); param != exp.callValue.end(); ++param) {
-                            parameters.push_back(this->executeExpression(*param));
-                        }
-                        function->second(parameters);
                         break;
                     }
                     case ExpressionTag::SYMBOL: {
@@ -121,6 +215,10 @@ namespace Deluxe {
                 auto result = this->stack.top();
                 this->stack.pop();
                 return result;
+            }
+
+            Expression executeExpression(Expression exp) {
+                return this->executeExpression(exp, this->environment);
             }
     };
 }
